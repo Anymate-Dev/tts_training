@@ -1,9 +1,8 @@
 import os
 import shutil
 
-def generate_esd_list(base_path):
-    date_folder = '2024-01-18'
-    source_path = os.path.join(base_path, date_folder)
+def generate_game_filtered_esd_list(base_path):
+    source_path = base_path
     raw_folder_path = os.path.join(source_path, 'raw')
     esd_list_path = os.path.join(source_path, 'esd.list')
 
@@ -32,10 +31,10 @@ def generate_esd_list(base_path):
                                 dst_file_path = os.path.join(raw_folder_path, language_id+"_"+filename)
 
                                 # shutil.copy(src_file_path, dst_file_path)
-                                esd_list_file.write(f'/home/anymate/project/GPT-SoVITS/data/2024-01-18/raw/{language_id+"_"+filename}|{speaker_name}|{language_id}|{label_text}\n')
+                                esd_list_file.write(f'/home/anymate/project/GPT-SoVITS/raw_data/raw/{language_id+"_"+filename}|{speaker_name}|{language_id}|{label_text}\n')
 
 
 if __name__ == '__main__':
-    base_path = '/home/anymate/project/GPT-SoVITS/data'
+    game_filterd_base_path = '/home/anymate/project/GPT-SoVITS/raw_data/game_filtered_data'
     print(1)
-    # generate_esd_list(base_path)
+    generate_game_filtered_esd_list(game_filterd_base_path)
