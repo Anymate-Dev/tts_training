@@ -1,13 +1,14 @@
 import os
 import shutil
 
+filterd_base_path = '/home/anymate/project/GPT-SoVITS/raw_data/filtered_data'
+target_path = '/home/anymate/project/GPT-SoVITS/data/'
+
 def generate_game_filtered_esd_list(base_path):
     source_path = base_path
     raw_folder_path = os.path.join(source_path, 'raw')
-    esd_list_path = os.path.join(source_path, 'esd.list')
+    esd_list_path = os.path.join(target_path, 'esd.list')
 
-    if not os.path.exists(raw_folder_path):
-        os.makedirs(raw_folder_path)
 
     with open(esd_list_path, 'w', encoding='utf-8') as esd_list_file:
         for language_folder in os.listdir(source_path):
@@ -28,13 +29,11 @@ def generate_game_filtered_esd_list(base_path):
                                         label_text = lab_file.read().strip().replace("|", "")
 
                                 src_file_path = os.path.join(speaker_path, filename)
-                                dst_file_path = os.path.join(raw_folder_path, language_id+"_"+filename)
+                                dst_file_path = os.path.join(target_path+'raw/', language_id+"_"+filename)
 
-                                # shutil.copy(src_file_path, dst_file_path)
-                                esd_list_file.write(f'/home/anymate/project/GPT-SoVITS/raw_data/raw/{language_id+"_"+filename}|{speaker_name}|{language_id}|{label_text}\n')
+                                shutil.copy(src_file_path, dst_file_path)
+                                esd_list_file.write(target_path+'raw/'+f'{language_id+"_"+filename}|{speaker_name}|{language_id}|{label_text}\n')
 
 
 if __name__ == '__main__':
-    game_filterd_base_path = '/home/anymate/project/GPT-SoVITS/raw_data/game_filtered_data'
-    print(1)
-    generate_game_filtered_esd_list(game_filterd_base_path)
+    generate_game_filtered_esd_list(filterd_base_path)

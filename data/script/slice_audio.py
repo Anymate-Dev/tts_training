@@ -1,12 +1,13 @@
 import os,sys,numpy as np
 import traceback
+import shutil
 from scipy.io import wavfile
 # parent_directory = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(parent_directory)
 from tools.my_utils import load_audio
 from slicer2 import Slicer
 
-def slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_max,alpha,i_part,all_part):
+def slice(inp,opt_root,threshold=-34,min_length=4000,min_interval=1000,hop_size=10,max_sil_kept=500,_max=0.9,alpha=0.25,i_part=0,all_part=30):
     os.makedirs(opt_root,exist_ok=True)
     if os.path.isfile(inp):
         input=[inp]
@@ -43,4 +44,44 @@ def slice(inp,opt_root,threshold,min_length,min_interval,hop_size,max_sil_kept,_
         except:
             print(inp_path,"->fail->",traceback.format_exc())
     return "执行完毕，请检查输出文件"
+
+
+
+# slice('/home/anymate/project/GPT-SoVITS/raw_data/audio/famale001.mp3','/home/anymate/project/GPT-SoVITS/raw_data/audio_slicer')
+
+
+source_audio_dir = '/home/anymate/project/GPT-SoVITS/raw_data/audio'
+target_dir = '/home/anymate/project/GPT-SoVITS/raw_data/audio_slicer/en'
+
+#if target_dir exists, delete it
+if os.path.exists(target_dir):
+    shutil.rmtree(target_dir)
+    
+os.makedirs(target_dir, exist_ok=True)
+
+#list all files in the source audio directory
+audio_files = os.listdir(source_audio_dir)
+
+#slice each audio file
+for audio_file in audio_files:
+    target_audio_dir_name = audio_file.split('.')[0]
+    #create a directory for each audio file
+    target_audio_dir = os.path.join(target_dir, target_audio_dir_name)
+    os.makedirs(target_audio_dir, exist_ok=True)
+    #slice the audio file
+    slice(os.path.join(source_audio_dir, audio_file), target_audio_dir)
+    
+    
+
+    
+
+
+
+
+
+    
+
+
+
+
 

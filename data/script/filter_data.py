@@ -34,12 +34,12 @@ def audio_to_text(audio_path):
     
 
 
-def copy_files_if_duration_matches(source_dir, target_dir, min_duration=6000, max_duration=9000):
+def filter_game_files(source_dir, target_dir, min_duration=6000, max_duration=9000):
     # 删除目标目录下的现有数据
-    delete_existing_target_data(target_dir)
+    # delete_existing_target_data(target_dir)
 
     # 遍历源目录
-    for language in ['en']:
+    for language in ['en','zh']:
         lang_path = os.path.join(source_dir, language)
         logging.info(f"Processing language: {language}")
         
@@ -78,20 +78,32 @@ def copy_files_if_duration_matches(source_dir, target_dir, min_duration=6000, ma
                             
                             if os.path.exists(src_file_path):
                                 copy2(src_file_path, target_person_path)
-                                
-                                text = audio_to_text(src_file_path)
-                                logging.info(f"Generated text: {text}")
 
-                                #create txt file with same name as audio file
-                                txt_file_path = os.path.join(target_person_path, src_file_name.replace('.wav', '.lab'))
-                                with open(txt_file_path, 'w') as f:
-                                    f.write(text)
-                                    file_count += 1
+                                if(language == 'en'):
+                                    text = audio_to_text(src_file_path)
+                                    logging.info(f"Generated text: {text}")
+
+                                    #create txt file with same name as audio file
+                                    txt_file_path = os.path.join(target_person_path, src_file_name.replace('.wav', '.lab'))
+
+                                    with open(txt_file_path, 'w') as f:
+                                        f.write(text)
+                                        file_count += 1
+                                if(language == 'zh'):
+                                    for suffix in ['.wav', '.lab']:
+                                        src_file_path = os.path.splitext(file_path)[0] + suffix
+                                        if os.path.exists(src_file_path):
+                                            copy2(src_file_path, target_person_path)
+
+
                     else:
                         logging.info(f"Skipping {file}, duration {duration}ms does not meet criteria")
 
 # 设置源目录和目标目录
-source_directory = '/home/anymate/project/GPT-SoVITS/raw_data/game'
-target_directory = '/home/anymate/project/GPT-SoVITS/raw_data/game_filtered_data/'
+# source_game_directory = '/home/anymate/project/GPT-SoVITS/raw_data/game'
+# target_game_directory = '/home/anymate/project/GPT-SoVITS/raw_data/filtered_data/'
 
-copy_files_if_duration_matches(source_directory, target_directory)
+source_directory = '/home/anymate/project/GPT-SoVITS/raw_data/audio_slicer/'
+target_directory = '/home/anymate/project/GPT-SoVITS/raw_data/filtered_data/'
+
+filter_game_files(source_directory, target_directory)
