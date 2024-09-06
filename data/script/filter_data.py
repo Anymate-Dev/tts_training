@@ -1,45 +1,71 @@
 import os
+import logging
 from shutil import copy2, rmtree
 from pydub import AudioSegment
-import logging
 from faster_whisper import WhisperModel
+from pydub import AudioSegment
+from pydub.silence import detect_silence
 
-model = WhisperModel('/home/anymate/project/tts_training/data/script/faster-whisper-large-v3', device="cuda", compute_type="float16")
+# Add this constant
+MIN_DURATION = 6000
+MAX_DURATION = 10000
+MAX_SILENCE_DURATION = 2500  # 2.5 seconds in milliseconds
 
+MAX_FILES_PER_PERSON = 30
+WHISPER_MODEL_PATH = '/home/anymate/project/tts_training/data/script/faster-whisper-large-v3'
+
+# Initialize logging and Whisper model
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+model = WhisperModel(WHISPER_MODEL_PATH, device="cuda", compute_type="float16")
 
 def delete_existing_target_data(target_dir):
-    # 检查目标目录是否存在，如果存在则删除
     if os.path.exists(target_dir):
         logging.info(f"Deleting existing data in {target_dir}")
         rmtree(target_dir)
     else:
         logging.info(f"No existing data found in {target_dir}")
 
-def create_emotion_folders(base_path):
-    emotions = [
-        "Happiness", "Sadness", "Anger", "Calm", 
-        "Surprise", "Fear", "Anticipation", "Disgust", "to_process"
-    ]
-    for emotion in emotions:
-        os.makedirs(os.path.join(base_path, emotion), exist_ok=True)
-
-        
 def audio_to_text(audio_path):
-    segments, info = model.transcribe(audio_path, beam_size=5)
-    text=''
-    for segment in segments:
-        text+=segment.text
-    return text
+    segments, _ = model.transcribe(audio_path, beam_size=5)
+    return ''.join(segment.text for segment in segments)
+
+def process_audio_file(file_path, target_path, language):
+    audio = AudioSegment.from_wav(file_path)
+    duration = len(audio)
+
+    if MIN_DURATION <= duration <= MAX_DURATION:
+        # Detect silence
+        silence_chunks = detect_silence(audio, min_silence_len=MAX_SILENCE_DURATION, silence_thresh=-40)
+        
+        if not silence_chunks:
+            logging.info(f"Processing: {file_path} with duration {duration}ms")
+            file_name = os.path.basename(file_path)
+            target_file_path = os.path.join(target_path, file_name)
+            
+            copy2(file_path, target_file_path)
+            
+            if language == 'en':
+                text = audio_to_text(file_path)
+                logging.info(f"Generated text: {text}")
+                
+                txt_file_path = target_file_path.replace('.wav', '.lab')
+                with open(txt_file_path, 'w') as f:
+                    f.write(text)
+                return True
+            elif language == 'zh':
+                lab_file = file_path.replace('.wav', '.lab')
+                if os.path.exists(lab_file):
+                    copy2(lab_file, target_path)
+                return True
+        else:
+            logging.info(f"Skipping {file_path} due to long silence periods")
     
+    return False
+
+def filter_files(source_dir, target_dir):
 
 
-def filter_game_files(source_dir, target_dir, min_duration=6000, max_duration=9000):
-    # 删除目标目录下的现有数据
-    # delete_existing_target_data(target_dir)
-
-    # 遍历源目录
-    for language in ['en','zh']:
+    for language in ['en', 'zh']:
         lang_path = os.path.join(source_dir, language)
         logging.info(f"Processing language: {language}")
         
@@ -50,60 +76,30 @@ def filter_game_files(source_dir, target_dir, min_duration=6000, max_duration=90
 
             logging.info(f"Processing person: {person} in {language}")
             
-            # 创建目标人物目录并在其中创建情感文件夹
             target_person_path = os.path.join(target_dir, language, person)
-            print(target_person_path)
-            # create_emotion_folders(target_person_path)
-
             os.makedirs(target_person_path, exist_ok=True)
 
             file_count = 0
-            # 遍历人名文件夹中的文件
             for file in os.listdir(person_path):
-
-                if file_count >= 30:
+                if file_count >= MAX_FILES_PER_PERSON:
                     break
                 
                 if file.endswith('.wav'):
                     file_path = os.path.join(person_path, file)
-                    audio = AudioSegment.from_wav(file_path)
-                    duration = len(audio)
+                    if process_audio_file(file_path, target_person_path, language):
+                        file_count += 1
 
-                    # 检查音频时长是否在指定范围内
-                    if min_duration <= duration <= max_duration:
-                        logging.info(f"Copying audio and text for: {file} with duration {duration}ms to {target_person_path}")
-                        for suffix in ['.wav']:
-                            src_file_path = os.path.splitext(file_path)[0] + suffix
-                            src_file_name = os.path.basename(src_file_path)
-                            
-                            if os.path.exists(src_file_path):
-                                copy2(src_file_path, target_person_path)
+def main():
+    source_dir ='/home/anymate/project/GPT-SoVITS/raw_data/long_game_audio/'
+    target_directory = '/home/anymate/project/GPT-SoVITS/raw_data/filtered_data/'
 
-                                if(language == 'en'):
-                                    text = audio_to_text(src_file_path)
-                                    logging.info(f"Generated text: {text}")
+    delete_existing_target_data(target_directory)
 
-                                    #create txt file with same name as audio file
-                                    txt_file_path = os.path.join(target_person_path, src_file_name.replace('.wav', '.lab'))
+    filter_files(source_dir, target_directory)
 
-                                    with open(txt_file_path, 'w') as f:
-                                        f.write(text)
-                                        file_count += 1
-                                if(language == 'zh'):
-                                    for suffix in ['.wav', '.lab']:
-                                        src_file_path = os.path.splitext(file_path)[0] + suffix
-                                        if os.path.exists(src_file_path):
-                                            copy2(src_file_path, target_person_path)
+    source_dir = '/home/anymate/project/GPT-SoVITS/raw_data/audio_slicer/'
+    filter_files(source_dir, target_directory)
 
 
-                    else:
-                        logging.info(f"Skipping {file}, duration {duration}ms does not meet criteria")
-
-# 设置源目录和目标目录
-# source_game_directory = '/home/anymate/project/GPT-SoVITS/raw_data/game'
-# target_game_directory = '/home/anymate/project/GPT-SoVITS/raw_data/filtered_data/'
-
-source_directory = '/home/anymate/project/GPT-SoVITS/raw_data/audio_slicer/'
-target_directory = '/home/anymate/project/GPT-SoVITS/raw_data/filtered_data/'
-
-filter_game_files(source_directory, target_directory)
+if __name__ == "__main__":
+    main()

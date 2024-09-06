@@ -1,39 +1,45 @@
 import os
 import shutil
 
-filterd_base_path = '/home/anymate/project/GPT-SoVITS/raw_data/filtered_data'
-target_path = '/home/anymate/project/GPT-SoVITS/data/'
+BASE_PATH = '/home/anymate/project/GPT-SoVITS/raw_data/filtered_data'
+TARGET_PATH = '/home/anymate/project/GPT-SoVITS/data/'
+RAW_TARGET_PATH = os.path.join(TARGET_PATH, 'raw')
+ESD_LIST_PATH = os.path.join(TARGET_PATH, 'esd.list')
 
-def generate_game_filtered_esd_list(base_path):
-    source_path = base_path
-    raw_folder_path = os.path.join(source_path, 'raw')
-    esd_list_path = os.path.join(target_path, 'esd.list')
+def read_lab_file(lab_file_path):
+    if os.path.exists(lab_file_path):
+        with open(lab_file_path, 'r', encoding='utf-8') as lab_file:
+            return lab_file.read().strip().replace("|", "")
+    return ''
 
+def process_wav_file(speaker_path, filename, language_id, speaker_name, esd_list_file):
+    src_file_path = os.path.join(speaker_path, filename)
+    dst_file_name = f"{language_id}_{filename}"
+    dst_file_path = os.path.join(RAW_TARGET_PATH, dst_file_name)
 
-    with open(esd_list_path, 'w', encoding='utf-8') as esd_list_file:
-        for language_folder in os.listdir(source_path):
-            language_path = os.path.join(source_path, language_folder)
-            if os.path.isdir(language_path):
-                for speaker_folder in os.listdir(language_path):
-                    speaker_path = os.path.join(language_path, speaker_folder)
-                    if os.path.isdir(speaker_path):
-                        for filename in os.listdir(speaker_path):
-                            if filename.endswith('.wav'):
-                                speaker_name = speaker_folder
-                                language_id = language_folder
+    lab_file_path = os.path.join(speaker_path, filename.replace('.wav', '.lab'))
+    label_text = read_lab_file(lab_file_path)
 
-                                lab_file_path = os.path.join(speaker_path, filename.replace('.wav', '.lab'))
-                                label_text = ''
-                                if os.path.exists(lab_file_path):
-                                    with open(lab_file_path, 'r', encoding='utf-8') as lab_file:
-                                        label_text = lab_file.read().strip().replace("|", "")
+    shutil.copy(src_file_path, dst_file_path)
+    esd_list_file.write(f'{dst_file_path}|{speaker_name}|{language_id}|{label_text}\n')
 
-                                src_file_path = os.path.join(speaker_path, filename)
-                                dst_file_path = os.path.join(target_path+'raw/', language_id+"_"+filename)
+def generate_esd_list(base_path):
+    os.makedirs(RAW_TARGET_PATH, exist_ok=True)
 
-                                shutil.copy(src_file_path, dst_file_path)
-                                esd_list_file.write(target_path+'raw/'+f'{language_id+"_"+filename}|{speaker_name}|{language_id}|{label_text}\n')
+    with open(ESD_LIST_PATH, 'w', encoding='utf-8') as esd_list_file:
+        for language_folder in os.listdir(base_path):
+            language_path = os.path.join(base_path, language_folder)
+            if not os.path.isdir(language_path):
+                continue
 
+            for speaker_folder in os.listdir(language_path):
+                speaker_path = os.path.join(language_path, speaker_folder)
+                if not os.path.isdir(speaker_path):
+                    continue
+
+                for filename in os.listdir(speaker_path):
+                    if filename.endswith('.wav'):
+                        process_wav_file(speaker_path, filename, language_folder, speaker_folder, esd_list_file)
 
 if __name__ == '__main__':
-    generate_game_filtered_esd_list(filterd_base_path)
+    generate_esd_list(BASE_PATH)
