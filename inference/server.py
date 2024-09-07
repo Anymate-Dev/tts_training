@@ -11,10 +11,8 @@ def synthesize( ref_audio_path, ref_text_content, ref_language, target_text_cont
 
     
 
-    GPT_model_path='/home/anymate/project/GPT-SoVITS/GPT_weights_v2/new-e25.ckpt'
-    SoVITS_model_path='/home/anymate/project/GPT-SoVITS/SoVITS_weights_v2/new_e8_s7664.pth'
-    
-    
+    GPT_model_path='/home/anymate/project/GPT-SoVITS/GPT_weights_v2/09070900-e50.ckpt'
+    SoVITS_model_path='/home/anymate/project/GPT-SoVITS/SoVITS_weights_v2/09070900_e24_s4248.pth'
 
     try:
         # Change model weights
@@ -27,7 +25,7 @@ def synthesize( ref_audio_path, ref_text_content, ref_language, target_text_cont
                                        prompt_language=i18n(ref_language), 
                                        text=target_text_content, 
                                        text_language=i18n(target_language), 
-                                       top_k=20,top_p=0.8, temperature=0.8, how_to_cut=how_to_cut,
+                                       top_k=30,top_p=0.5, temperature=0.5, how_to_cut=how_to_cut,
                                        ref_free=False, speed=1, if_freeze=False, inp_refs=None
                                        )
         
@@ -71,7 +69,7 @@ def main():
 
         synthesize_button = gr.Button("Synthesize")
         synthesize_button.click(gradio_synthesize, 
-                                inputs=[GPT_model_path, SoVITS_model_path, ref_audio, ref_text, ref_language, target_text, target_language, how_to_cut],
+                                inputs=[ref_audio, ref_text, ref_language, target_text, target_language, how_to_cut],
                                 outputs=output_audio, 
                                 concurrency_limit=16)
 

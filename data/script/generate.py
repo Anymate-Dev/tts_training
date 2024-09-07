@@ -37,9 +37,26 @@ def generate_esd_list(base_path):
                 if not os.path.isdir(speaker_path):
                     continue
 
+
+
+                #if file count is less than 20, skip
+                if len(os.listdir(speaker_path)) < 20:
+                    continue
+
+                #print speaker folder name and count of files
+                print(language_folder,speaker_folder, len(os.listdir(speaker_path)))
+
+                speaker_path = os.path.join(language_path, speaker_folder)
+
                 for filename in os.listdir(speaker_path):
                     if filename.endswith('.wav'):
                         process_wav_file(speaker_path, filename, language_folder, speaker_folder, esd_list_file)
 
 if __name__ == '__main__':
+    #delete existing esd list and raw data
+    if os.path.exists(ESD_LIST_PATH):
+        os.remove(ESD_LIST_PATH)
+    if os.path.exists(RAW_TARGET_PATH):
+        shutil.rmtree(RAW_TARGET_PATH)
+
     generate_esd_list(BASE_PATH)
